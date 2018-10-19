@@ -39,6 +39,10 @@ import {FindOperator} from "../find-options/FindOperator";
  */
 export abstract class QueryBuilder<Entity> {
 
+    public logQuery(...tags: any[]) {
+        // console.log('\n', ...tags, this.getQuery().replace(/(FROM|LEFT|WHERE)/g, '\n$1').replace(/,/g, ',\n'), '\n');
+    }
+
     // -------------------------------------------------------------------------
     // Public Properties
     // -------------------------------------------------------------------------

@@ -1,3 +1,6 @@
+import { RelationCountMetadataArgs } from '../metadata-args/RelationCountMetadataArgs';
+import { RelationIdMetadataArgs } from '../metadata-args/RelationIdMetadataArgs';
+import { RelationMetadataArgs } from '../metadata-args/RelationMetadataArgs';
 import {EntityMetadata} from "../metadata/EntityMetadata";
 import {ColumnMetadata} from "../metadata/ColumnMetadata";
 import {IndexMetadata} from "../metadata/IndexMetadata";
@@ -18,6 +21,22 @@ import {UniqueMetadata} from "../metadata/UniqueMetadata";
 import {MysqlDriver} from "../driver/mysql/MysqlDriver";
 import {CheckMetadata} from "../metadata/CheckMetadata";
 import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
+
+
+/*const getRelationDebugString = (relation: RelationMetadata | RelationIdMetadata | RelationCountMetadata) => {
+    const classPropertyPath = [
+        relation.target.name,
+        relation.propertyName,
+    ].join('.')
+    const propertyValueType = (relation instanceof RelationMetadata ? relation.type.name : '?');
+    return classPropertyPath + ': ' + propertyValueType;
+}
+const getEntityAndRelationDebugString = (entityMetadata: EntityMetadata) => (relation: RelationMetadata | RelationIdMetadata | RelationCountMetadata) => {
+    return [
+        entityMetadata.targetName,
+        getRelationDebugString(relation),
+    ].join(' ');
+};*/
 
 /**
  * Builds EntityMetadata objects and all its sub-metadatas.
@@ -113,7 +132,7 @@ export class EntityMetadataBuilder {
 
         // go through all entity metadatas and create foreign keys / junction entity metadatas for their relations
         entityMetadatas
-            .filter(entityMetadata => entityMetadata.tableType !== "entity-child")
+            // .filter(entityMetadata => entityMetadata.tableType !== "entity-child")
             .forEach(entityMetadata => {
 
                 // create entity's relations join columns (for many-to-one and one-to-one owner)
@@ -401,30 +420,53 @@ export class EntityMetadataBuilder {
             }));
         }
 
-        entityMetadata.ownRelations = this.metadataArgsStorage.filterRelations(entityMetadata.inheritanceTree).map(args => {
+        enum RelationProp {
+            ownRelations = 'ownRelations',
+            relationIds = 'relationIds',
+            relationCounts = 'relationCounts',
+        }
+        type Constructable<T> = { new(...args: any[]): T };
+        function filterRelation<T extends RelationMetadata | RelationIdMetadata | RelationCountMetadata>(
+            type: Constructable<T>,
+            collection: Array<RelationMetadataArgs | RelationIdMetadataArgs | RelationCountMetadataArgs>
+        ): T[] {
+            return collection
+                .filter(rel => (entityMetadata.target as Function).prototype instanceof (rel.target as Function) || entityMetadata.target === rel.target)
+                // .reverse()
+                .reduce<T[]>((relations, args) => {
+                    const relation: T = new type({ entityMetadata, args });
+                    // for single table children we reuse relations created for their parents
+                    if (entityMetadata.tableType === "entity-child") {
+                        const prop: Constructable<T> extends typeof type ? RelationProp : undefined = (() => {
+                            switch (type) {
+                                case RelationMetadata: return RelationProp.ownRelations;
+                                case RelationIdMetadata: return RelationProp.relationIds;
+                                case RelationCountMetadata: return RelationProp.relationCounts;
+                                default: throw new Error('impossible');
+                            }
+                        })();
+                        const parentRelations: T[] = entityMetadata.parentEntityMetadata[prop] as T[];
+                        const parentRelation = parentRelations.find(relation => relation.propertyName === args.propertyName)!;
+                        if (relation.target !== entityMetadata.target) {
+                            relations.push(parentRelation);
+                        }
+                    }
 
-            // for single table children we reuse relations created for their parents
-            if (entityMetadata.tableType === "entity-child")
-                return entityMetadata.parentEntityMetadata.ownRelations.find(relation => relation.propertyName === args.propertyName)!;
+                    relations.push(relation);
+                    return relations;
+                }, [])
+                .reduceRight<T[]>((relations, relation) => {
+                    const rightHandRelation = relations.find(rel => rel.propertyName === relation.propertyName /*&& rel.target === relation.target*/);
+                    if (!rightHandRelation) {
+                        relations.push(relation);
+                    }
+                    return relations;
+                }, [])// .reverse()
+        }
 
-            return new RelationMetadata({ entityMetadata, args });
-        });
-        entityMetadata.relationIds = this.metadataArgsStorage.filterRelationIds(entityMetadata.inheritanceTree).map(args => {
-
-            // for single table children we reuse relation ids created for their parents
-            if (entityMetadata.tableType === "entity-child")
-                return entityMetadata.parentEntityMetadata.relationIds.find(relationId => relationId.propertyName === args.propertyName)!;
-
-            return new RelationIdMetadata({ entityMetadata, args });
-        });
-        entityMetadata.relationCounts = this.metadataArgsStorage.filterRelationCounts(entityMetadata.inheritanceTree).map(args => {
-
-            // for single table children we reuse relation counts created for their parents
-            if (entityMetadata.tableType === "entity-child")
-                return entityMetadata.parentEntityMetadata.relationCounts.find(relationCount => relationCount.propertyName === args.propertyName)!;
-
-            return new RelationCountMetadata({ entityMetadata, args });
-        });
+        entityMetadata.ownRelations = filterRelation(RelationMetadata, this.metadataArgsStorage.relations);
+        entityMetadata.relationIds = filterRelation(RelationIdMetadata, this.metadataArgsStorage.relationIds);
+        entityMetadata.relationCounts = filterRelation(RelationCountMetadata, this.metadataArgsStorage.relationCounts);
         entityMetadata.ownIndices = this.metadataArgsStorage.filterIndices(entityMetadata.inheritanceTree).map(args => {
             return new IndexMetadata({ entityMetadata, args });
         });

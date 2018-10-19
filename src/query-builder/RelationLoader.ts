@@ -191,6 +191,10 @@ export class RelationLoader {
 
         Object.defineProperty(entity, relation.propertyName, {
             get: function() {
+                if (this[dataIndex]) {
+                    // return lazy loaded immediatly instead of reselecting
+                    return this[dataIndex];
+                }
                 if (this[resolveIndex] === true) // if related data already was loaded then simply return it
                     return Promise.resolve(this[dataIndex]);
 
