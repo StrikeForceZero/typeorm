@@ -431,7 +431,14 @@ export class EntityMetadataBuilder {
             collection: Array<RelationMetadataArgs | RelationIdMetadataArgs | RelationCountMetadataArgs>
         ): T[] {
             return collection
-                .filter(rel => (entityMetadata.target as Function).prototype instanceof (rel.target as Function) || entityMetadata.target === rel.target)
+                .filter(rel => {
+                    if (typeof rel.target === "string" || typeof entityMetadata.target === "string") {
+                        const relationTargetName = typeof rel.target === 'function' ? rel.target.name : rel.target;
+                        const entityTargetName = typeof entityMetadata.target === 'function' ? entityMetadata.target.name : entityMetadata.target;
+                        return relationTargetName === entityTargetName;
+                    }
+                    return (entityMetadata.target as Function).prototype instanceof (rel.target as Function) || entityMetadata.target === rel.target
+                })
                 // .reverse()
                 .reduce<T[]>((relations, args) => {
                     const relation: T = new type({ entityMetadata, args });
