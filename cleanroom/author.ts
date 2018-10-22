@@ -4,6 +4,8 @@ import { BasePerson } from './basePerson';
 
 @TypeOrm.Entity({ name: 'person' })
 export class Author extends BasePerson {
-    @TypeOrm.Column()
+    @TypeOrm.Column({
+        nullable: true,
+    })
     public authorName: string;
 }

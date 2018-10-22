@@ -17,9 +17,10 @@ declare const console: {
 }
 
 const connection = TypeOrm.createConnection({
-    username: 'root',
-    type: 'mysql',
-    database: 'foobar',
+    username: "root",
+    password: "admin",
+    type: "mysql",
+    database: "test",
     entities: [
         BasePerson,
         Person,

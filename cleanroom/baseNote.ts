@@ -8,7 +8,9 @@ export class BaseNote {
     @TypeOrm.PrimaryGeneratedColumn()
     public id: number;
 
-    @TypeOrm.Column()
+    @TypeOrm.Column({
+        nullable: true,
+    })
     public label: string;
 
     @TypeOrm.ManyToOne(type => Person, { lazy: true })

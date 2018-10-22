@@ -468,12 +468,36 @@ export class EntityMetadataBuilder {
                         relations.push(relation);
                     }
                     return relations;
-                }, [])// .reverse()
+                }, [])
         }
 
         entityMetadata.ownRelations = filterRelation(RelationMetadata, this.metadataArgsStorage.relations);
         entityMetadata.relationIds = filterRelation(RelationIdMetadata, this.metadataArgsStorage.relationIds);
         entityMetadata.relationCounts = filterRelation(RelationCountMetadata, this.metadataArgsStorage.relationCounts);
+        /*entityMetadata.ownRelations = this.metadataArgsStorage.filterRelations(entityMetadata.inheritanceTree).map(args => {
+
+            // for single table children we reuse relations created for their parents
+            if (entityMetadata.tableType === "entity-child")
+                return entityMetadata.parentEntityMetadata.ownRelations.find(relation => relation.propertyName === args.propertyName)!;
+
+            return new RelationMetadata({ entityMetadata, args });
+        });
+        entityMetadata.relationIds = this.metadataArgsStorage.filterRelationIds(entityMetadata.inheritanceTree).map(args => {
+
+            // for single table children we reuse relation ids created for their parents
+            if (entityMetadata.tableType === "entity-child")
+                return entityMetadata.parentEntityMetadata.relationIds.find(relationId => relationId.propertyName === args.propertyName)!;
+
+            return new RelationIdMetadata({ entityMetadata, args });
+        });
+        entityMetadata.relationCounts = this.metadataArgsStorage.filterRelationCounts(entityMetadata.inheritanceTree).map(args => {
+
+            // for single table children we reuse relation counts created for their parents
+            if (entityMetadata.tableType === "entity-child")
+                return entityMetadata.parentEntityMetadata.relationCounts.find(relationCount => relationCount.propertyName === args.propertyName)!;
+
+            return new RelationCountMetadata({ entityMetadata, args });
+        });*/
         entityMetadata.ownIndices = this.metadataArgsStorage.filterIndices(entityMetadata.inheritanceTree).map(args => {
             return new IndexMetadata({ entityMetadata, args });
         });

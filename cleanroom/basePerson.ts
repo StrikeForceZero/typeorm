@@ -6,7 +6,9 @@ export class BasePerson {
     @TypeOrm.PrimaryGeneratedColumn()
     public id: number;
 
-    @TypeOrm.Column()
+    @TypeOrm.Column({
+        nullable: true,
+    })
     public name: string;
 
     @TypeOrm.OneToMany(type => BaseNote, note => note.owner, { lazy: true })
