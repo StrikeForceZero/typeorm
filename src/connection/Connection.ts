@@ -494,6 +494,8 @@ export class Connection {
             childEntityMetadatas.forEach(inheritChildRelations);
             childEntityMetadatas.forEach((childEntityMetadata) => {
                 entityMetadata.relations.push(...childEntityMetadata.relations);
+                const missingChildColumns = childEntityMetadata.columns.filter(childCol => entityMetadata.columns.findIndex(entityCol => entityCol.propertyName === childCol.propertyName) === -1)
+                entityMetadata.columns.push(...missingChildColumns);
             })
         }
         this.entityMetadatas.forEach(inheritChildRelations);
