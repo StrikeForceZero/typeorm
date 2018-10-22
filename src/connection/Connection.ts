@@ -489,6 +489,15 @@ export class Connection {
         const migrations = connectionMetadataBuilder.buildMigrations(this.options.migrations || []);
         Object.assign(this, { migrations: migrations });
 
+        function inheritChildRelations(entityMetadata: EntityMetadata) {
+            const childEntityMetadatas = entityMetadata.childEntityMetadatas;
+            childEntityMetadatas.forEach(inheritChildRelations);
+            childEntityMetadatas.forEach((childEntityMetadata) => {
+                entityMetadata.relations.push(...childEntityMetadata.relations);
+            })
+        }
+        this.entityMetadatas.forEach(inheritChildRelations);
+
         // validate all created entity metadatas to make sure user created entities are valid and correct
         entityMetadataValidator.validateMany(this.entityMetadatas, this.driver);
     }
