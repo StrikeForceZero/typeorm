@@ -612,7 +612,7 @@ export class EntityManager {
             qb.andWhereInIds(metadata.ensureEntityIdMap(idOrOptionsOrConditions));
         }
 
-        return qb.getOne();
+        return qb.getOne(true);
     }
 
     /**

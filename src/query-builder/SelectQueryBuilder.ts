@@ -1054,9 +1054,26 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
     /**
      * Gets single entity returned by execution of generated query builder sql.
      */
-    async getOne(): Promise<Entity|undefined> {
-        const results = await this.getRawAndEntities();
-        const result = results.entities[0] as any;
+    async getOne(limitOne = false): Promise<Entity|undefined> {
+        let result;
+        if (limitOne && !this.expressionMap.joinAttributes.some(join => join.isMany)) {
+            const results = await this.clone().limit(1).getRawAndEntities();
+            result = results.entities[0] as any;
+        } else if(limitOne) {
+            const alias = this.expressionMap.mainAlias!;
+            const primaryColumns = alias.metadata.primaryColumns;
+            const query = this.clone().select();
+            primaryColumns.forEach(col => {
+                query.addSelect(`${alias.name}.${col.propertyName}`);
+            })
+            const pkResults = await query.limit(1).getRawAndEntities();
+            const singleResultQuery = this.clone().whereInIds(pkResults.entities);
+            const results = await singleResultQuery.getRawAndEntities();
+            result = results.entities[0] as any;
+        } else {
+            const results = await this.clone().getRawAndEntities();
+            result = results.entities[0] as any;
+        }
 
         if (result && this.expressionMap.lockMode === "optimistic" && this.expressionMap.lockVersion) {
             const metadata = this.expressionMap.mainAlias!.metadata;
